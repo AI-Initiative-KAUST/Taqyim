@@ -102,11 +102,13 @@ class Pipeline:
 
         dev_df = train_dataset.to_pandas()
         dev_df["sample"] = dev_df.apply(lambda x: self.create_chat_example(x), axis=1)
+        dev_df.to_csv(f'{data_path}/few_shot.csv', index=False)
         dev_df[["sample"]].to_json(f'{data_path}/few_shot.jsonl', lines=True, orient="records",force_ascii=False)
 
         test_df = test_dataset.to_pandas()
         test_df["input"] = test_df[self.input_column_name].apply(lambda x: self.create_chat_prompt(x))
         test_df["ideal"] = test_df[self.target_column_name]
+        test_df.to_csv(f'{data_path}/samples.csv', index=False)
         test_df[["input", "ideal"]].to_json(f'{data_path}/samples.jsonl', lines=True, orient="records",force_ascii=False)
 
         os.environ["OPENAI_API_KEY"] = self.api_key
@@ -128,10 +130,12 @@ class Pipeline:
         with open(self.specs_file, "w") as file:
             file.write(specs)
 
-    def run(self):        
-        os.system(f"oaieval {self.model_name} {self.eval_name}\
-                    --seed {self.seed} \
-                    --modelspec_extra_options temperature={self.temperature} --max_samples {self.max_samples} --record_path {self.record_path}")
+    def run(self):
+        cmd = f"oaieval {self.model_name} {self.eval_name}\
+                --seed {self.seed} \
+                --modelspec_extra_options temperature={self.temperature} --max_samples {self.max_samples} --record_path {self.record_path}"        
+        print(f"running cmd: {cmd}")
+        # os.system(cmd)
 
         if self.resume_from_record:
             self.merged_record_path = f'{BASE_PATH}/eval_results/{self.eval_name}_full.jsonl'
